@@ -1,0 +1,303 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>
+            {{ isEditMode ? 'Edit Package' : 'Create New Package' }}
+          </mat-card-title>
+        </mat-card-header>
+
+        <mat-card-content>
+          <form [formGroup]="packageForm" (ngSubmit)="onSubmit()">
+
+            <!-- Basic Package Information -->
+            <div class="form-section">
+              <h3>Package Information</h3>
+              <div class="row">
+                <div class="col-md-6">
+                  <mat-form-field class="full-width">
+                    <mat-label>Package Name *</mat-label>
+                    <input matInput formControlName="name" placeholder="Enter package name">
+                    <mat-error *ngIf="isFieldInvalid('name')">
+                      {{ getFieldError('name') }}
+                    </mat-error>
+                  </mat-form-field>
+                </div>
+                <div class="col-md-6">
+                  <mat-form-field class="full-width">
+                    <mat-label>Validity (Days) *</mat-label>
+                    <input matInput type="number" formControlName="validity" placeholder="Enter validity in days">
+                    <mat-error *ngIf="isFieldInvalid('validity')">
+                      {{ getFieldError('validity') }}
+                    </mat-error>
+                  </mat-form-field>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-12">
+                  <mat-form-field class="full-width">
+                    <mat-label>Description</mat-label>
+                    <textarea matInput formControlName="description" rows="3" 
+                              placeholder="Enter package description"></textarea>
+                  </mat-form-field>
+                </div>
+              </div>
+            </div>
+
+            <!-- Package Rules -->
+            <div class="form-section">
+              <h3>Package Rules</h3>
+              <div class="row">
+                <div class="col-md-6">
+                  <mat-checkbox formControlName="isBookedInParallel">
+                    Booked in Parallel
+                  </mat-checkbox>
+                  <div class="mt-1" style="font-size: 12px; color: #666;">
+                    If checked, all services must be availed at the same time
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <mat-form-field class="full-width">
+                    <mat-label>Available For *</mat-label>
+                    <mat-select formControlName="availableFor">
+                      <mat-option *ngFor="let option of genderOptions" [value]="option.value">
+                        {{ option.label }}
+                      </mat-option>
+                    </mat-select>
+                  </mat-form-field>
+                </div>
+              </div>
+            </div>
+
+            <!-- Package Type -->
+            <div class="form-section">
+              <h3>Package Type</h3>
+              <div class="row">
+                <div class="col-md-4">
+                  <mat-radio-group formControlName="packageType">
+                    <mat-radio-button value="Fixed">Fixed Package</mat-radio-button>
+                    <mat-radio-button value="Customizable" class="ml-2">Customizable Package</mat-radio-button>
+                  </mat-radio-group>
+                </div>
+                <div class="col-md-4" *ngIf="isCustomizable()">
+                  <mat-form-field class="full-width">
+                    <mat-label>Min Selectable Services</mat-label>
+                    <input matInput type="number" formControlName="minSelectableServices">
+                    <mat-error *ngIf="isFieldInvalid('minSelectableServices')">
+                      {{ getFieldError('minSelectableServices') }}
+                    </mat-error>
+                  </mat-form-field>
+                </div>
+                <div class="col-md-4" *ngIf="isCustomizable()">
+                  <mat-form-field class="full-width">
+                    <mat-label>Max Selectable Services</mat-label>
+                    <input matInput type="number" formControlName="maxSelectableServices">
+                    <mat-error *ngIf="isFieldInvalid('maxSelectableServices')">
+                      {{ getFieldError('maxSelectableServices') }}
+                    </mat-error>
+                  </mat-form-field>
+                </div>
+              </div>
+            </div>
+
+            <!-- Payment & Sharing -->
+            <div class="form-section">
+              <h3>Payment & Sharing Options</h3>
+              <div class="row">
+                <div class="col-md-4">
+                  <mat-radio-group formControlName="paymentType">
+                    <mat-radio-button value="Pre-paid">Pre-paid</mat-radio-button>
+                    <mat-radio-button value="Post-paid" class="ml-2">Post-paid</mat-radio-button>
+                  </mat-radio-group>
+                </div>
+                <div class="col-md-4">
+                  <mat-checkbox formControlName="isSharerPackage">
+                    Sharer Package
+                  </mat-checkbox>
+                  <div class="mt-1" style="font-size: 12px; color: #666;">
+                    Services can be shared with others
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <mat-checkbox formControlName="followSequence">
+                    Follow Sequence
+                  </mat-checkbox>
+                  <div class="mt-1" style="font-size: 12px; color: #666;">
+                    Services must be taken in sequence
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Extension Settings -->
+            <div class="form-section">
+              <h3>Validity Extensions</h3>
+              <div class="row">
+                <div class="col-md-3">
+                  <mat-form-field class="full-width">
+                    <mat-label>Extension Fee</mat-label>
+                    <input matInput type="number" formControlName="extensionFee" 
+                           [readonly]="packageForm.get('isComplimentaryExtension')?.value">
+                    <mat-error *ngIf="isFieldInvalid('extensionFee')">
+                      {{ getFieldError('extensionFee') }}
+                    </mat-error>
+                  </mat-form-field>
+                </div>
+                <div class="col-md-3">
+                  <mat-checkbox formControlName="isComplimentaryExtension">
+                    Complimentary Extensions
+                  </mat-checkbox>
+                </div>
+                <div class="col-md-3">
+                  <mat-form-field class="full-width">
+                    <mat-label>Max Extensions</mat-label>
+                    <input matInput type="number" formControlName="maxExtensions">
+                    <mat-error *ngIf="isFieldInvalid('maxExtensions')">
+                      {{ getFieldError('maxExtensions') }}
+                    </mat-error>
+                  </mat-form-field>
+                </div>
+                <div class="col-md-3">
+                  <mat-radio-group formControlName="renewalType">
+                    <mat-radio-button value="Auto">Auto Renewal</mat-radio-button>
+                    <mat-radio-button value="Manual" class="ml-2">Manual Renewal</mat-radio-button>
+                  </mat-radio-group>
+                </div>
+              </div>
+
+              <!-- Available Duration Options -->
+              <div class="row mt-3">
+                <div class="col-12">
+                  <h4>Available Extension Durations (Days)</h4>
+                  <div class="chip-list">
+                    <mat-chip-set>
+                      <mat-chip *ngFor="let duration of durationOptions" 
+                               [class.selected]="isDurationSelected(duration)"
+                               (click)="onDurationToggle(duration)">
+                        {{ duration }} days
+                      </mat-chip>
+                    </mat-chip-set>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Outlet Configuration -->
+            <div class="form-section">
+              <h3>Outlet Configuration</h3>
+              <div class="row">
+                <div class="col-12">
+                  <mat-checkbox formControlName="applyForAllOutlets">
+                    Apply for All Selected Outlets
+                  </mat-checkbox>
+                  <div class="mt-1" style="font-size: 12px; color: #666;">
+                    If unchecked, you can set different rates for each outlet
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Services Selection -->
+            <div class="form-section">
+              <h3>Service/Product Rate Details</h3>
+              <div class="row" *ngIf="isCustomizable()">
+                <div class="col-12 mb-3">
+                  <mat-chip-set>
+                    <mat-chip [color]="'accent'" selected>
+                      Selected: {{ getSelectedServicesCount() }} / {{ packageForm.get('maxSelectableServices')?.value }}
+                    </mat-chip>
+                  </mat-chip-set>
+                </div>
+              </div>
+
+              <div formArrayName="services">
+                <div *ngFor="let service of servicesFormArray.controls; let i = index" 
+                     [formGroupName]="i"
+                     class="service-item"
+                     [class.selected]="service.get('isSelected')?.value"
+                     [class.disabled]="isServiceDisabled(i)">
+
+                  <div class="sequence-number" *ngIf="packageForm.get('followSequence')?.value">
+                    {{ service.get('sequenceNumber')?.value }}
+                  </div>
+
+                  <mat-checkbox formControlName="isSelected" 
+                               (change)="onServiceToggle(i)"
+                               [disabled]="isServiceDisabled(i)"
+                               class="mr-3">
+                  </mat-checkbox>
+
+                  <div class="flex-grow-1">
+                    <div class="row align-items-center">
+                      <div class="col-md-4">
+                        <strong>{{ service.get('serviceName')?.value }}</strong>
+                      </div>
+                      <div class="col-md-2" *ngIf="packageForm.get('followSequence')?.value">
+                        <mat-form-field>
+                          <mat-label>Sequence</mat-label>
+                          <input matInput type="number" formControlName="sequenceNumber" min="1">
+                        </mat-form-field>
+                      </div>
+                      <div class="col-md-3">
+                        <mat-form-field>
+                          <mat-label>Rate</mat-label>
+                          <input matInput type="number" formControlName="rate" min="0">
+                          <span matPrefix>₹&nbsp;</span>
+                        </mat-form-field>
+                      </div>
+                      <div class="col-md-3 text-center">
+                        <mat-icon *ngIf="service.get('isSelected')?.value" color="primary">check_circle</mat-icon>
+                        <mat-icon *ngIf="!service.get('isSelected')?.value && !isServiceDisabled(i)">radio_button_unchecked</mat-icon>
+                        <mat-icon *ngIf="isServiceDisabled(i)" color="disabled">block</mat-icon>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Status -->
+            <div class="form-section">
+              <h3>Status</h3>
+              <div class="row">
+                <div class="col-12">
+                  <mat-slide-toggle formControlName="isActive">
+                    {{ packageForm.get('isActive')?.value ? 'Active' : 'Inactive' }}
+                  </mat-slide-toggle>
+                </div>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="form-actions mt-4">
+              <div class="d-flex justify-content-end">
+                <button mat-raised-button type="button" class="mr-2" (click)="onCancel()">
+                  <mat-icon>cancel</mat-icon>
+                  Cancel
+                </button>
+                <button mat-raised-button color="primary" type="submit" [disabled]="packageForm.invalid">
+                  <mat-icon>save</mat-icon>
+                  {{ isEditMode ? 'Update Package' : 'Create Package' }}
+                </button>
+              </div>
+            </div>
+
+          </form>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+</div>
+
+<!-- Confirmation Dialog for Parallel Booking -->
+<ng-template #parallelBookingDialog>
+  <div class="dialog-content">
+    <h2>Parallel Booking Confirmation</h2>
+    <p>Remaining services will lapse if not availed in this appointment.</p>
+    <div class="dialog-actions">
+      <button mat-button>Cancel</button>
+      <button mat-raised-button color="primary">Continue</button>
+    </div>
+  </div>
+</ng-template>

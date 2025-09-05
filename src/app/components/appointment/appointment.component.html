@@ -1,0 +1,275 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>Book Appointment</mat-card-title>
+        </mat-card-header>
+
+        <mat-card-content>
+          <form [formGroup]="appointmentForm" (ngSubmit)="onSubmit()">
+
+            <!-- Client Information -->
+            <div class="form-section">
+              <h3>Client Information</h3>
+              <div class="row">
+                <div class="col-md-6">
+                  <mat-form-field class="full-width">
+                    <mat-label>Select Client *</mat-label>
+                    <mat-select formControlName="clientId">
+                      <mat-option *ngFor="let client of clients" [value]="client.id">
+                        {{ client.name }} ({{ client.phone }}) - {{ client.gender }}
+                      </mat-option>
+                    </mat-select>
+                    <mat-error *ngIf="isFieldInvalid('clientId')">
+                      Client selection is required
+                    </mat-error>
+                  </mat-form-field>
+                </div>
+                <div class="col-md-6">
+                  <mat-form-field class="full-width">
+                    <mat-label>Client Name</mat-label>
+                    <input matInput formControlName="clientName" readonly>
+                  </mat-form-field>
+                </div>
+              </div>
+            </div>
+
+            <!-- Appointment Date & Time -->
+            <div class="form-section">
+              <h3>Appointment Schedule</h3>
+              <div class="row">
+                <div class="col-md-6">
+                  <mat-form-field class="full-width">
+                    <mat-label>Appointment Date *</mat-label>
+                    <input matInput [matDatepicker]="picker" formControlName="appointmentDate">
+                    <mat-hint>Select appointment date</mat-hint>
+                    <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+                    <mat-datepicker #picker></mat-datepicker>
+                    <mat-error *ngIf="isFieldInvalid('appointmentDate')">
+                      Appointment date is required
+                    </mat-error>
+                  </mat-form-field>
+                </div>
+                <div class="col-md-6">
+                  <mat-form-field class="full-width">
+                    <mat-label>Appointment Time *</mat-label>
+                    <mat-select formControlName="appointmentTime">
+                      <mat-option *ngFor="let slot of getAvailableTimeSlots()" [value]="slot.time">
+                        {{ slot.time }}
+                      </mat-option>
+                    </mat-select>
+                    <mat-error *ngIf="isFieldInvalid('appointmentTime')">
+                      Appointment time is required
+                    </mat-error>
+                  </mat-form-field>
+                </div>
+              </div>
+            </div>
+
+            <!-- Package Selection -->
+            <div class="form-section">
+              <h3>Package Selection</h3>
+              <div class="row">
+                <div class="col-12">
+                  <mat-form-field class="full-width">
+                    <mat-label>Select Package (Optional)</mat-label>
+                    <mat-select formControlName="packageId">
+                      <mat-option value="">None - Individual Service Booking</mat-option>
+                      <mat-option *ngFor="let pkg of getAvailablePackages()" [value]="pkg.id">
+                        {{ pkg.name }} - {{ pkg.packageType }} 
+                        ({{ pkg.paymentType }}, Validity: {{ pkg.validity }} days)
+                        <span *ngIf="pkg.availableFor !== 'All'"> - {{ pkg.availableFor }} Only</span>
+                      </mat-option>
+                    </mat-select>
+                  </mat-form-field>
+                </div>
+              </div>
+
+              <!-- Package Details -->
+              <div *ngIf="selectedPackage" class="package-details mt-3">
+                <mat-expansion-panel [expanded]="true">
+                  <mat-expansion-panel-header>
+                    <mat-panel-title>{{ selectedPackage.name }} Details</mat-panel-title>
+                    <mat-panel-description>
+                      {{ selectedPackage.packageType }} Package - {{ selectedPackage.paymentType }}
+                    </mat-panel-description>
+                  </mat-expansion-panel-header>
+
+                  <div class="package-info">
+                    <div class="row">
+                      <div class="col-md-3">
+                        <strong>Validity:</strong> {{ selectedPackage.validity }} days
+                      </div>
+                      <div class="col-md-3">
+                        <strong>Payment:</strong> {{ selectedPackage.paymentType }}
+                      </div>
+                      <div class="col-md-3">
+                        <strong>Gender:</strong> {{ selectedPackage.availableFor }}
+                      </div>
+                      <div class="col-md-3">
+                        <strong>Renewal:</strong> {{ selectedPackage.renewalType }}
+                      </div>
+                    </div>
+
+                    <div class="row mt-2" *ngIf="selectedPackage.isBookedInParallel || selectedPackage.isSharerPackage || selectedPackage.followSequence">
+                      <div class="col-12">
+                        <div class="package-rules">
+                          <mat-chip-set>
+                            <mat-chip *ngIf="selectedPackage.isBookedInParallel" color="warn" selected>
+                              <mat-icon>schedule</mat-icon>
+                              Must be booked in parallel
+                            </mat-chip>
+                            <mat-chip *ngIf="selectedPackage.isSharerPackage" color="accent" selected>
+                              <mat-icon>share</mat-icon>
+                              Can be shared
+                            </mat-chip>
+                            <mat-chip *ngIf="selectedPackage.followSequence" color="primary" selected>
+                              <mat-icon>list</mat-icon>
+                              Follow sequence
+                            </mat-chip>
+                          </mat-chip-set>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="row mt-2" *ngIf="selectedPackage.packageType === 'Customizable'">
+                      <div class="col-12">
+                        <div class="customizable-info">
+                          <mat-chip-set>
+                            <mat-chip color="primary" selected>
+                              Select {{ selectedPackage.minSelectableServices }} - {{ selectedPackage.maxSelectableServices }} services
+                            </mat-chip>
+                            <mat-chip [color]="getSelectedServicesCount() >= (selectedPackage.minSelectableServices || 1) ? 'accent' : 'warn'" selected>
+                              Currently selected: {{ getSelectedServicesCount() }}
+                            </mat-chip>
+                          </mat-chip-set>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </mat-expansion-panel>
+              </div>
+            </div>
+
+            <!-- Service Selection -->
+            <div class="form-section" *ngIf="selectedPackage">
+              <h3>Service Selection</h3>
+              <div class="services-container" formArrayName="selectedServices">
+                <div *ngFor="let service of selectedServicesFormArray.controls; let i = index" 
+                     [formGroupName]="i"
+                     class="service-item"
+                     [class.selected]="service.get('isSelected')?.value"
+                     [class.disabled]="isServiceDisabled(i)"
+                     [class.sequence-based]="selectedPackage.followSequence">
+
+                  <div class="service-content">
+                    <div class="sequence-number" *ngIf="selectedPackage.followSequence">
+                      {{ service.get('sequenceNumber')?.value }}
+                    </div>
+
+                    <div class="service-checkbox">
+                      <mat-checkbox formControlName="isSelected" 
+                                   (change)="onServiceToggle(i)"
+                                   [disabled]="isServiceDisabled(i) || selectedPackage.packageType === 'Fixed'">
+                      </mat-checkbox>
+                    </div>
+
+                    <div class="service-details">
+                      <div class="service-name">
+                        <strong>{{ service.get('serviceName')?.value }}</strong>
+                      </div>
+                      <div class="service-rate">
+                        ₹{{ service.get('rate')?.value }}
+                      </div>
+                    </div>
+
+                    <div class="service-status">
+                      <mat-icon *ngIf="service.get('isSelected')?.value" color="primary">check_circle</mat-icon>
+                      <mat-icon *ngIf="!service.get('isSelected')?.value && !isServiceDisabled(i)">radio_button_unchecked</mat-icon>
+                      <mat-icon *ngIf="isServiceDisabled(i)" color="disabled" matTooltip="Maximum services selected">block</mat-icon>
+                    </div>
+                  </div>
+
+                  <!-- Parallel booking warning -->
+                  <div *ngIf="selectedPackage.isBookedInParallel && service.get('isSelected')?.value" 
+                       class="parallel-warning">
+                    <mat-icon color="warn">warning</mat-icon>
+                    <span>Must be availed together with other selected services</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- No services message -->
+              <div *ngIf="selectedServicesFormArray.length === 0" class="no-services">
+                <mat-icon>info</mat-icon>
+                <span>No services available in this package</span>
+              </div>
+            </div>
+
+            <!-- Total Amount -->
+            <div class="form-section" *ngIf="selectedPackage">
+              <h3>Payment Summary</h3>
+              <div class="payment-summary">
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="summary-item">
+                      <span class="label">Selected Services:</span>
+                      <span class="value">{{ getSelectedServicesCount() }}</span>
+                    </div>
+                    <div class="summary-item">
+                      <span class="label">Payment Type:</span>
+                      <span class="value">{{ selectedPackage.paymentType }}</span>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="summary-item total">
+                      <span class="label">Total Amount:</span>
+                      <span class="value">₹{{ appointmentForm.get('totalAmount')?.value || 0 }}</span>
+                    </div>
+                    <div class="summary-note" *ngIf="selectedPackage.paymentType === 'Post-paid'">
+                      <mat-icon>info</mat-icon>
+                      <span>Amount will be charged when services are utilized</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Notes -->
+            <div class="form-section">
+              <h3>Additional Notes</h3>
+              <div class="row">
+                <div class="col-12">
+                  <mat-form-field class="full-width">
+                    <mat-label>Notes</mat-label>
+                    <textarea matInput formControlName="notes" rows="3" 
+                              placeholder="Any special requirements or notes"></textarea>
+                  </mat-form-field>
+                </div>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="form-actions mt-4">
+              <div class="d-flex justify-content-between">
+                <button mat-raised-button type="button" (click)="resetForm()">
+                  <mat-icon>refresh</mat-icon>
+                  Reset Form
+                </button>
+                <div>
+                  <button mat-raised-button color="primary" type="submit" 
+                          [disabled]="appointmentForm.invalid || (selectedPackage && getSelectedServicesCount() === 0)">
+                    <mat-icon>event</mat-icon>
+                    Book Appointment
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </form>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+</div>

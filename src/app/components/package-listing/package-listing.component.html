@@ -1,0 +1,206 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <mat-card>
+        <mat-card-header>
+          <div class="header-content">
+            <mat-card-title>Package Management</mat-card-title>
+            <div class="header-actions">
+              <mat-form-field class="search-field" appearance="outline">
+                <mat-label>Search packages</mat-label>
+                <input matInput (keyup)="applyFilter($event)" placeholder="Search by name, service, etc.">
+                <mat-icon matSuffix>search</mat-icon>
+              </mat-form-field>
+              <button mat-raised-button color="primary" (click)="onCreateNew()">
+                <mat-icon>add</mat-icon>
+                Create New Package
+              </button>
+            </div>
+          </div>
+        </mat-card-header>
+
+        <mat-card-content>
+          <div class="table-container">
+            <table mat-table [dataSource]="dataSource" class="full-width" matSort>
+
+              <!-- Package Name Column -->
+              <ng-container matColumnDef="name">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header> Package Name </th>
+                <td mat-cell *matCellDef="let pkg"> 
+                  <div class="package-name">
+                    <strong>{{ pkg.name }}</strong>
+                    <div class="package-description">{{ pkg.description }}</div>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Services Column -->
+              <ng-container matColumnDef="services">
+                <th mat-header-cell *matHeaderCellDef> Services </th>
+                <td mat-cell *matCellDef="let pkg">
+                  <div class="services-list">
+                    <mat-chip-set>
+                      <mat-chip *ngFor="let service of pkg.services.slice(0, 2)" 
+                               [matTooltip]="'Rate: ₹' + service.rate">
+                        {{ service.serviceName }}
+                      </mat-chip>
+                      <mat-chip *ngIf="pkg.services.length > 2" 
+                               [matTooltip]="getServiceNames(pkg)">
+                        +{{ pkg.services.length - 2 }} more
+                      </mat-chip>
+                    </mat-chip-set>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Validity Column -->
+              <ng-container matColumnDef="validity">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header> Validity </th>
+                <td mat-cell *matCellDef="let pkg"> 
+                  <div class="validity-info">
+                    <strong>{{ pkg.validity }} days</strong>
+                    <div class="renewal-type">{{ pkg.renewalType }} Renewal</div>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Extension Rule Column -->
+              <ng-container matColumnDef="extensionRule">
+                <th mat-header-cell *matHeaderCellDef> Extension Rule </th>
+                <td mat-cell *matCellDef="let pkg">
+                  <div class="extension-rule">
+                    <div>{{ getExtensionRule(pkg) }}</div>
+                    <div class="available-durations">
+                      <mat-chip *ngFor="let duration of pkg.availableDurations" class="duration-chip">
+                        {{ duration }}d
+                      </mat-chip>
+                    </div>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Sharer Column -->
+              <ng-container matColumnDef="sharer">
+                <th mat-header-cell *matHeaderCellDef> Sharer </th>
+                <td mat-cell *matCellDef="let pkg">
+                  <mat-icon [color]="pkg.isSharerPackage ? 'primary' : 'disabled'" 
+                           [matTooltip]="pkg.isSharerPackage ? 'Can be shared' : 'Cannot be shared'">
+                    {{ pkg.isSharerPackage ? 'check_circle' : 'cancel' }}
+                  </mat-icon>
+                </td>
+              </ng-container>
+
+              <!-- Package Type Column -->
+              <ng-container matColumnDef="packageType">
+                <th mat-header-cell *matHeaderCellDef> Package Type </th>
+                <td mat-cell *matCellDef="let pkg">
+                  <div class="package-type">
+                    <mat-chip [color]="pkg.packageType === 'Fixed' ? 'primary' : 'accent'" selected>
+                      {{ getPackageTypeDisplay(pkg) }}
+                    </mat-chip>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Booked in Parallel Column -->
+              <ng-container matColumnDef="bookedInParallel">
+                <th mat-header-cell *matHeaderCellDef> Book in Parallel </th>
+                <td mat-cell *matCellDef="let pkg">
+                  <mat-icon [color]="pkg.isBookedInParallel ? 'primary' : 'disabled'"
+                           [matTooltip]="pkg.isBookedInParallel ? 'Must be booked together' : 'Can be booked separately'">
+                    {{ pkg.isBookedInParallel ? 'check_circle' : 'cancel' }}
+                  </mat-icon>
+                </td>
+              </ng-container>
+
+              <!-- Gender Column -->
+              <ng-container matColumnDef="gender">
+                <th mat-header-cell *matHeaderCellDef> Gender </th>
+                <td mat-cell *matCellDef="let pkg">
+                  <mat-chip [color]="pkg.availableFor === 'All' ? 'primary' : 'accent'" selected>
+                    {{ pkg.availableFor }}
+                  </mat-chip>
+                </td>
+              </ng-container>
+
+              <!-- Rate Column -->
+              <ng-container matColumnDef="rate">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header> Rate </th>
+                <td mat-cell *matCellDef="let pkg">
+                  <div class="rate-info">
+                    <strong class="total-rate">₹{{ getTotalRate(pkg) }}</strong>
+                    <div class="service-count">{{ pkg.services.length }} services</div>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Payment Type Column -->
+              <ng-container matColumnDef="paymentType">
+                <th mat-header-cell *matHeaderCellDef> Payment Type </th>
+                <td mat-cell *matCellDef="let pkg">
+                  <mat-chip [color]="pkg.paymentType === 'Pre-paid' ? 'primary' : 'warn'" selected>
+                    {{ pkg.paymentType }}
+                  </mat-chip>
+                </td>
+              </ng-container>
+
+              <!-- Follow Sequence Column -->
+              <ng-container matColumnDef="followSequence">
+                <th mat-header-cell *matHeaderCellDef> Follow Sequence </th>
+                <td mat-cell *matCellDef="let pkg">
+                  <mat-icon [color]="pkg.followSequence ? 'primary' : 'disabled'"
+                           [matTooltip]="pkg.followSequence ? 'Services must follow sequence' : 'No sequence required'">
+                    {{ pkg.followSequence ? 'check_circle' : 'cancel' }}
+                  </mat-icon>
+                </td>
+              </ng-container>
+
+              <!-- Status Column -->
+              <ng-container matColumnDef="status">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header> Status </th>
+                <td mat-cell *matCellDef="let pkg">
+                  <span [class]="getStatusClass(pkg.isActive)">
+                    {{ getStatusText(pkg.isActive) }}
+                  </span>
+                </td>
+              </ng-container>
+
+              <!-- Actions Column -->
+              <ng-container matColumnDef="actions">
+                <th mat-header-cell *matHeaderCellDef> Actions </th>
+                <td mat-cell *matCellDef="let pkg">
+                  <div class="action-buttons">
+                    <button mat-icon-button color="primary" 
+                            (click)="onEdit(pkg.id!)" 
+                            matTooltip="Edit Package">
+                      <mat-icon>edit</mat-icon>
+                    </button>
+                    <button mat-icon-button 
+                            [color]="pkg.isActive ? 'warn' : 'primary'"
+                            (click)="onToggleStatus(pkg)"
+                            [matTooltip]="pkg.isActive ? 'Deactivate' : 'Activate'">
+                      <mat-icon>{{ pkg.isActive ? 'toggle_on' : 'toggle_off' }}</mat-icon>
+                    </button>
+                    <button mat-icon-button color="warn" 
+                            (click)="onDelete(pkg.id!)" 
+                            matTooltip="Delete Package">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  </div>
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+            </table>
+
+            <mat-paginator [pageSizeOptions]="[5, 10, 25, 50]" 
+                          showFirstLastButtons
+                          aria-label="Select page of packages">
+            </mat-paginator>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+</div>

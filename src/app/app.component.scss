@@ -1,0 +1,17 @@
+.spacer {
+  flex: 1 1 auto;
+}
+
+.active {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.container-fluid {
+  padding: 20px;
+}
+
+mat-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}

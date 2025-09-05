@@ -1,0 +1,22 @@
+<mat-toolbar color="primary">
+  <mat-toolbar-row>
+    <span routerLink="/" style="cursor: pointer;">{{title}}</span>
+    <span class="spacer"></span>
+    <button mat-button routerLink="/packages" routerLinkActive="active">
+      <mat-icon>list</mat-icon>
+      Packages
+    </button>
+    <button mat-button routerLink="/package/new" routerLinkActive="active">
+      <mat-icon>add</mat-icon>
+      New Package
+    </button>
+    <button mat-button routerLink="/appointment" routerLinkActive="active">
+      <mat-icon>event</mat-icon>
+      Appointment
+    </button>
+  </mat-toolbar-row>
+</mat-toolbar>
+
+<div class="container-fluid mt-3">
+  <router-outlet></router-outlet>
+</div>
